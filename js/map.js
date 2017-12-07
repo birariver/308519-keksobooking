@@ -1,5 +1,7 @@
 'use strict';
 var ESC_KEYCODE = 27;
+var OFFSET_X = 20;
+var OFFSET_Y = 58;
 
 function random(x, y) {
   if (typeof (y) === 'undefined') {
@@ -36,13 +38,10 @@ function featuresList() {
   return list;
 }
 
-var adverts = [];
-var locationX;
-var locationY;
-for (var i = 0; i < 8; i++) {
+var generateAdvert = function () {
   locationX = random(300, 900);
   locationY = random(100, 500);
-  adverts[i] = {
+  return {
     'author': {
       'avatar': 'img/avatars/user' + avatarValues.splice(random(avatarValues.length - 1), 1) + '.png'
     },
@@ -64,6 +63,13 @@ for (var i = 0; i < 8; i++) {
       }
     }
   };
+};
+
+var adverts = [];
+var locationX;
+var locationY;
+for (var i = 0; i < 8; i++) {
+  adverts.push(generateAdvert());
 }
 
 // заполнение карточки объявления ==================================================
@@ -136,32 +142,31 @@ for (i = 0; i < fieldset.length; i++) {
   fieldset[i].disabled = true;
 }
 
+var renderAdvert = function (advert) {
+  var similarLabelTemplate = document.querySelector('template').content.querySelector('.map__pin');
+  var advertLabel = similarLabelTemplate.cloneNode(true);
+  advertLabel.style.left = advert.offer.location.x - OFFSET_X + 'px';
+  advertLabel.style.top = advert.offer.location.y - OFFSET_Y + 'px';
+  var advertLabelImage = advertLabel.querySelector('img');
+  advertLabelImage.src = advert.author.avatar;
+  advertLabelImage.width = '40';
+  advertLabelImage.height = '40';
+  advertLabelImage.draggable = 'false';
+  return advertLabel;
+};
+
 // ======================что делает клик по КРАСНОЙ метке
 document.querySelector('.map__pin--main').addEventListener('click', function () {
-  var OFFSET_X = 20;
-  var OFFSET_Y = 58;
+
   // убираем затемнение
   document.querySelector('.map').classList.remove('map--faded');
   // и рисуем пины
-  var similarLabelTemplate = document.querySelector('template').content.querySelector('.map__pin');
-  var renderAdvert = function (advert) {
-    var advertLabel = similarLabelTemplate.cloneNode(true);
-    advertLabel.style.left = advert.offer.location.x - OFFSET_X + 'px';
-    advertLabel.style.top = advert.offer.location.y - OFFSET_Y + 'px';
-    var advertLabelImage = advertLabel.querySelector('img');
-    advertLabelImage.src = advert.author.avatar;
-    advertLabelImage.width = '40';
-    advertLabelImage.height = '40';
-    advertLabelImage.draggable = 'false';
-    return advertLabel;
-  };
-
   var fragment = document.createDocumentFragment();
   for (i = 0; i < adverts.length; i++) {
     var advertLabel = fragment.appendChild(renderAdvert(adverts[i]));
     advertLabel.value = i;
     advertLabel.setAttribute('tabindex', 0);
-    advertLabel.addEventListener('click', function () {
+    advertLabel.addEventListener('click', function (evt) {
       // Удаляем флаг активности у предыдущего
       if (document.querySelector('.map__pin--active') !== null) {
         document.querySelector('.map__pin--active').classList.remove('map__pin--active');
@@ -170,10 +175,9 @@ document.querySelector('.map__pin--main').addEventListener('click', function () 
       }
       // ставим флаг активности у текущего
       // рисуем попап, то есть карточку объявления
-      this.classList.add('map__pin--active');
-      advertAssembling(document.querySelector('.popup'), adverts[this.value]);
+      evt.target.closest('.map__pin').classList.add('map__pin--active');
+      advertAssembling(document.querySelector('.popup'), adverts[evt.target.closest('.map__pin').value]);
     });
-
   }
 
   document.querySelector('.map__pins').appendChild(fragment);
